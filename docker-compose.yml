@@ -1,0 +1,18 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: mysql-ag-grid
+    environment:
+      MYSQL_DATABASE: sample_data
+      MYSQL_USER: reporting_app
+      MYSQL_PASSWORD: password123
+      MYSQL_ROOT_PASSWORD: "jN9$$wQ2!xV7#pL4@tR8%kM3^zF6&cH1*"
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./data/olympic_winners.sql:/docker-entrypoint-initdb.d/01-olympic_winners.sql:ro
+    restart: unless-stopped
+
+volumes:
+  mysql_data:

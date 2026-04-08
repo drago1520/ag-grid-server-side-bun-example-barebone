@@ -1,0 +1,13 @@
+{
+  "name": "ag-grid-server-side-demo",
+  "version": "1.0.0",
+  "description": "A minimal Bun demo showing AG Grid server-side operations with MySQL.",
+  "scripts": {
+    "start": "bun run server/server.js",
+    "dev": "bun --watch run server/server.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "mysql2": "^3.20.0"
+  }
+}
