@@ -6,7 +6,6 @@ services:
       MYSQL_DATABASE: sample_data
       MYSQL_USER: reporting_app
       MYSQL_PASSWORD: password123
-      MYSQL_ROOT_PASSWORD: "jN9$$wQ2!xV7#pL4@tR8%kM3^zF6&cH1*"
     ports:
       - "3307:3306"
     volumes:

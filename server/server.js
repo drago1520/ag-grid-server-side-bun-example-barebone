@@ -1,36 +1,37 @@
 import service from './service.js';
 
 const port = Number(process.env.PORT || 4000);
+const corsHeaders = request => {
+  const origin = request.headers.get('origin');
+  const isLocalhostOrigin = origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 
-const routes = {
-  '/': () => new Response(Bun.file('client/index.html')),
-  '/client/index.js': () =>
-    new Response(Bun.file('client/index.js'), {
-      headers: { 'Content-Type': 'application/javascript; charset=utf-8' },
-    }),
+  return isLocalhostOrigin
+    ? {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': '*',
+        'Access-Control-Allow-Headers': '*',
+      }
+    : {};
 };
 
 Bun.serve({
   port,
   async fetch(request) {
     const url = new URL(request.url);
+    const headers = corsHeaders(request);
+
+    if (request.method === 'OPTIONS')
+      return new Response(null, {
+        status: 204,
+        headers,
+      });
 
     if (request.method === 'POST' && url.pathname === '/olympicWinners') {
       const body = await request.json();
-
-      return new Promise(resolve => {
-        service.getData(body, (rows, lastRow) => {
-          resolve(Response.json({ rows, lastRow }));
-        });
-      });
+      return Response.json(await service.getData(body), { headers });
     }
 
-    const route = routes[url.pathname];
-    if (route) {
-      return route();
-    }
-
-    return new Response('Not found', { status: 404 });
+    return new Response('Not found', { status: 404, headers });
   },
 });
 

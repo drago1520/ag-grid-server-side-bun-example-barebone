@@ -17,6 +17,7 @@ const connection = mysql.createConnection({
   user: 'reporting_app',
   password: 'password123',
 });
+const promiseConnection = connection.promise();
 
 type SimpleFilterModel = TextFilterModel | NumberFilterModel | DateFilterModel | BigIntFilterModel; //{ filterType: 'text', type: 'contains', filter: 'abc' } { filterType: 'number', type: 'greaterThan', filter: 10 }
 type CombinedSimpleFilterModel =
@@ -27,16 +28,15 @@ type CombinedSimpleFilterModel =
 type SupportedFilterModel = SimpleFilterModel | CombinedSimpleFilterModel | SetFilterModel | IMultiFilterModel;
 type SupportedFilterRecord = Record<string, SupportedFilterModel>;
 
-
 const service = {
-  getData: (request: IServerSideGetRowsRequest, callback: (rows: unknown[], lastRow: number | null) => void) => {
+  getData: async (request: IServerSideGetRowsRequest) => {
+  console.log('request :', request);
     const sql = service.buildSql(request);
+    const [results] = await promiseConnection.query(sql);
+    const rows = service.cutResultsToPageSize(request, results as unknown[]);
+    const lastRow = service.getRowCount(request, results as unknown[]);
 
-    connection.query(sql, (error, results) => {
-      const rows = service.cutResultsToPageSize(request, results);
-      const lastRow = service.getRowCount(request, results);
-      callback(rows, lastRow);
-    });
+    return { rows, lastRow };
   },
 
   buildSql: (request: IServerSideGetRowsRequest) => {
@@ -61,21 +61,20 @@ const service = {
   },
 
   createOrderBySql: ({ sortModel }: Pick<IServerSideGetRowsRequest, 'sortModel'>) => {
-    if (!sortModel) {
-      return '';
-    }
+    if (!sortModel) return '';
 
     const sortParts = sortModel.map(item => `${item.colId} ${item.sort}`);
 
     return sortParts.length ? ` order by ${sortParts.join(', ')}` : '';
   },
 
-  createLimitOffsetSql: ({ startRow, endRow }: Pick<IServerSideGetRowsRequest, 'startRow' | 'endRow'>) => ` limit ${endRow - startRow + 1} offset ${startRow}`,
-  
+  createLimitOffsetSql: ({ startRow, endRow }: Pick<IServerSideGetRowsRequest, 'startRow' | 'endRow'>) =>
+    endRow !== undefined && startRow !== undefined ? ` limit ${endRow - startRow + 1} offset ${startRow}` : '', //return 1 more row to check if it's the end in getRowCount()
+
   getRowCount: ({ startRow, endRow }: Pick<IServerSideGetRowsRequest, 'startRow' | 'endRow'>, results: unknown[]) => {
-    if (!results?.length) {
-      return null;
-    }
+    if (!results?.length) return null;
+
+    if (startRow === undefined || endRow === undefined) return results.length;
 
     const currentLastRow = startRow + results.length;
     return currentLastRow <= endRow ? currentLastRow : -1;
@@ -83,8 +82,10 @@ const service = {
 
   cutResultsToPageSize: (
     { startRow, endRow }: Pick<IServerSideGetRowsRequest, 'startRow' | 'endRow'>,
-    results: unknown[]
+    results: unknown[],
   ) => {
+    if (startRow === undefined || endRow === undefined) return results;
+
     const pageSize = endRow - startRow;
     return results && results.length > pageSize ? results.slice(0, pageSize) : results;
   },
@@ -110,33 +111,23 @@ const textFilters = {
 };
 
 const leafFilterSql = (key: string, item: SimpleFilterModel) => {
-  const filters = item.filterType === 'text' ? textFilters : numberFilters;
+  const filters = item.filterType === 'text' ? textFilters : numberFilters; //TODO: handle more than text & numbers
   const filter = filters[item.type];
 
-  if (!filter) {
-    console.log(`unknown ${item.filterType} filter type: ${item.type}`);
-    return 'true';
-  }
+  if (!filter) throw new Error(`Unsupported ${item.filterType} filter type: ${item.type}`);
 
   return filter(key, item);
 };
 
 const filterSql = (key: string, item: SupportedFilterModel | null | undefined): string => {
-  if (!item) {
-    return 'true';
-  }
+  if (!item) throw new Error(`Missing filter model for column: ${key}`);
 
-  if (Array.isArray(item.conditions) && item.conditions.length) {
+  //only if CombinedSimpleFilterModel
+  if ('conditions' in item && 'operator' in item && Array.isArray(item.conditions) && item.conditions.length) {
     const parts = item.conditions.map(condition => filterSql(key, condition));
     return `(${parts.join(item.operator === 'OR' ? ' or ' : ' and ')})`;
   }
-
-  if (item.condition1 || item.condition2) {
-    const parts = [item.condition1, item.condition2].filter(Boolean).map(condition => filterSql(key, condition));
-    return `(${parts.join(item.operator === 'OR' ? ' or ' : ' and ')})`;
-  }
-
-  return leafFilterSql(key, item);
+  else return leafFilterSql(key, item); //will be fixed, once I handle more filter
 };
 
 export default service;

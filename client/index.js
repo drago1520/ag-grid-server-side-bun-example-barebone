@@ -1,5 +1,26 @@
+const datasource = {
+  getRows(params) {
+    console.log(JSON.stringify(params))
+
+    fetch("http://localhost:4000/olympicWinners", {
+      method: "POST",
+      body: JSON.stringify(params), //the obj also contains f()
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+    })
+      .then((httpResponse) => httpResponse.json())
+      .then((response) => {
+        console.log('response :', response);
+        params.successCallback(response.rows, response.lastRow);
+      })
+      .catch((error) => {
+        console.error(error);
+        params.failCallback();
+      });
+  },
+};
+
 const gridOptions = {
-  rowModelType: "serverSide",
+  rowModelType: "infinite",
   columnDefs: [
     { field: "athlete" },
     { field: "country", filter: "agTextColumnFilter" },
@@ -12,32 +33,8 @@ const gridOptions = {
   defaultColDef: {
     sortable: true,
   },
+  datasource: datasource,
 };
 
 const gridDiv = document.querySelector("#myGrid");
 const gridApi = agGrid.createGrid(gridDiv, gridOptions);
-
-const datasource = {
-  getRows(params) {
-    console.log(JSON.stringify(params.request, null, 1));
-
-    fetch("/olympicWinners", {
-      method: "POST",
-      body: JSON.stringify(params.request),
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-    })
-      .then((httpResponse) => httpResponse.json())
-      .then((response) => {
-        params.success({
-          rowData: response.rows,
-          rowCount: response.lastRow,
-        });
-      })
-      .catch((error) => {
-        console.error(error);
-        params.fail();
-      });
-  },
-};
-
-gridApi.setGridOption("serverSideDatasource", datasource);
