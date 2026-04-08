@@ -12,17 +12,22 @@ This project does **not** require AG Grid Enterprise. It works with the free AG 
 
 1. Install dependencies:
    `bun install`
-2. Start MySQL:
+2. Create the env file:
+   `cp .env.example .env`
+3. Start MySQL:
    `docker compose up -d`
-3. Run the Bun server:
+4. Run the Bun server:
    `bun server`
-4. Run the client html:
-   `bun client`
+   or for Postgres:
+   `DB_CLIENT=postgres bun server`
+5. Run the client html:
+   `bun client` for MySQL client
+   `bun clientPg` for Postgres client
    or just open the html.
 ## Features
 
 - Bun-based backend with a single `/olympicWinners` service endpoint
-- MySQL-backed filtering, sorting, and paged loading
+- MySQL- or Postgres-backed filtering, sorting, and paged loading
 - AG Grid Community frontend using the Infinite Row Model
 - Text, number, bigint, and date filter handling on the backend
 - Seed SQL with generated `bigint_value` and `created_at` columns

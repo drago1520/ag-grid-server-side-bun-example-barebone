@@ -1,4 +1,10 @@
-import service from './service.js';
+const dbClient = (process.env.DB_CLIENT || 'mysql').toLowerCase();
+console.log('dbClient :', dbClient);
+
+const service =
+  dbClient === 'postgres'
+    ? (await import('./postgres-service.js')).default
+    : (await import('./mysql-service.js')).default;
 
 const port = Number(process.env.PORT || 4000);
 const corsHeaders = request => {
