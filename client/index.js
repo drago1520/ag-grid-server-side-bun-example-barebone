@@ -27,7 +27,14 @@ const gridOptions = {
     { field: "sport" },
     { field: "year", filter: "agNumberColumnFilter", filterParams: { newRowsAction: "keep" } },
     { field: "bigint_value", filter: "agBigIntColumnFilter" },
-    { field: "created_at", filter: "agDateColumnFilter" },
+    {
+      field: "created_at",
+      filter: "agDateColumnFilter",
+      filterParams: {
+        filterOptions: ["empty", "equals", "notEqual", "lessThan", "lessThanOrEqual", "greaterThan", "greaterThanOrEqual", "inRange", "blank", "notBlank", "today", "yesterday", "tomorrow", "thisWeek", "lastWeek", "nextWeek", "thisMonth", "lastMonth", "nextMonth", "thisQuarter", "lastQuarter", "nextQuarter", "thisYear", "lastYear", "nextYear", "yearToDate", "last7Days", "last30Days", "last90Days", "last6Months", "last12Months", "last24Months",
+        ], //built-in type ISimpleFilterModelPresetType, I need to handle the backend, "empty" => "choose one" in UI
+      },
+    },
     { field: "gold" },
     { field: "silver" },
     { field: "bronze" },

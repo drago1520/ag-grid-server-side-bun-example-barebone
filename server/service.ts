@@ -137,16 +137,41 @@ const validateDate = (value: string | null | undefined) => {
   throw new Error(`Invalid date filter value: ${value}`);
 };
 
+const dateRangeSql = (key: string, start: string, end: string) => `${key} >= ${start} and ${key} < ${end}`;
+
+const datePresetFilters = {
+  today: key => dateRangeSql(key, 'CURRENT_DATE()', 'CURRENT_DATE() + INTERVAL 1 DAY'),
+  yesterday: key => dateRangeSql(key, 'CURRENT_DATE() - INTERVAL 1 DAY', 'CURRENT_DATE()'),
+  tomorrow: key => dateRangeSql(key, 'CURRENT_DATE() + INTERVAL 1 DAY', 'CURRENT_DATE() + INTERVAL 2 DAY'),
+  thisWeek: key => dateRangeSql(key, 'CURRENT_DATE() - INTERVAL WEEKDAY(CURRENT_DATE()) DAY', 'CURRENT_DATE() - INTERVAL WEEKDAY(CURRENT_DATE()) DAY + INTERVAL 7 DAY'),
+  lastWeek: key => dateRangeSql(key, 'CURRENT_DATE() - INTERVAL WEEKDAY(CURRENT_DATE()) DAY - INTERVAL 7 DAY', 'CURRENT_DATE() - INTERVAL WEEKDAY(CURRENT_DATE()) DAY'),
+  nextWeek: key => dateRangeSql(key, 'CURRENT_DATE() - INTERVAL WEEKDAY(CURRENT_DATE()) DAY + INTERVAL 7 DAY', 'CURRENT_DATE() - INTERVAL WEEKDAY(CURRENT_DATE()) DAY + INTERVAL 14 DAY'),
+  thisMonth: key => dateRangeSql(key, "DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01')", "DATE_FORMAT(CURRENT_DATE() + INTERVAL 1 MONTH, '%Y-%m-01')"),
+  lastMonth: key => dateRangeSql(key, "DATE_FORMAT(CURRENT_DATE() - INTERVAL 1 MONTH, '%Y-%m-01')", "DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01')"),
+  nextMonth: key => dateRangeSql(key, "DATE_FORMAT(CURRENT_DATE() + INTERVAL 1 MONTH, '%Y-%m-01')", "DATE_FORMAT(CURRENT_DATE() + INTERVAL 2 MONTH, '%Y-%m-01')"),
+  thisQuarter: key => dateRangeSql(key, "MAKEDATE(YEAR(CURRENT_DATE()), 1) + INTERVAL QUARTER(CURRENT_DATE()) * 3 - 3 MONTH", "MAKEDATE(YEAR(CURRENT_DATE()), 1) + INTERVAL QUARTER(CURRENT_DATE()) * 3 MONTH"),
+  lastQuarter: key => dateRangeSql(key, "MAKEDATE(YEAR(CURRENT_DATE() - INTERVAL 3 MONTH), 1) + INTERVAL QUARTER(CURRENT_DATE() - INTERVAL 3 MONTH) * 3 - 3 MONTH", "MAKEDATE(YEAR(CURRENT_DATE()), 1) + INTERVAL QUARTER(CURRENT_DATE()) * 3 - 3 MONTH"),
+  nextQuarter: key => dateRangeSql(key, "MAKEDATE(YEAR(CURRENT_DATE() + INTERVAL 3 MONTH), 1) + INTERVAL QUARTER(CURRENT_DATE() + INTERVAL 3 MONTH) * 3 - 3 MONTH", "MAKEDATE(YEAR(CURRENT_DATE() + INTERVAL 3 MONTH), 1) + INTERVAL QUARTER(CURRENT_DATE() + INTERVAL 3 MONTH) * 3 MONTH"),
+  thisYear: key => dateRangeSql(key, 'MAKEDATE(YEAR(CURRENT_DATE()), 1)', 'MAKEDATE(YEAR(CURRENT_DATE()) + 1, 1)'),
+  lastYear: key => dateRangeSql(key, 'MAKEDATE(YEAR(CURRENT_DATE()) - 1, 1)', 'MAKEDATE(YEAR(CURRENT_DATE()), 1)'),
+  nextYear: key => dateRangeSql(key, 'MAKEDATE(YEAR(CURRENT_DATE()) + 1, 1)', 'MAKEDATE(YEAR(CURRENT_DATE()) + 2, 1)'),
+  yearToDate: key => dateRangeSql(key, 'MAKEDATE(YEAR(CURRENT_DATE()), 1)', 'CURRENT_DATE() + INTERVAL 1 DAY'),
+  last7Days: key => dateRangeSql(key, 'CURRENT_DATE() - INTERVAL 7 DAY', 'CURRENT_DATE() + INTERVAL 1 DAY'),
+  last30Days: key => dateRangeSql(key, 'CURRENT_DATE() - INTERVAL 30 DAY', 'CURRENT_DATE() + INTERVAL 1 DAY'),
+  last90Days: key => dateRangeSql(key, 'CURRENT_DATE() - INTERVAL 90 DAY', 'CURRENT_DATE() + INTERVAL 1 DAY'),
+  last6Months: key => dateRangeSql(key, 'CURRENT_DATE() - INTERVAL 6 MONTH', 'CURRENT_DATE() + INTERVAL 1 DAY'),
+  last12Months: key => dateRangeSql(key, 'CURRENT_DATE() - INTERVAL 12 MONTH', 'CURRENT_DATE() + INTERVAL 1 DAY'),
+  last24Months: key => dateRangeSql(key, 'CURRENT_DATE() - INTERVAL 24 MONTH', 'CURRENT_DATE() + INTERVAL 1 DAY'),
+};
+
 const dateFilters = {
-  equals: (key, item) => `DATE(${key}) = "${validateDate(item.dateFrom)}"`,
-  notEqual: (key, item) => `DATE(${key}) != "${validateDate(item.dateFrom)}"`,
-  greaterThan: (key, item) => `DATE(${key}) > "${validateDate(item.dateFrom)}"`,
-  greaterThanOrEqual: (key, item) => `DATE(${key}) >= "${validateDate(item.dateFrom)}"`,
-  lessThan: (key, item) => `DATE(${key}) < "${validateDate(item.dateFrom)}"`,
-  lessThanOrEqual: (key, item) => `DATE(${key}) <= "${validateDate(item.dateFrom)}"`,
-  inRange: (key, item) => `(
-    DATE(${key}) >= "${validateDate(item.dateFrom)}" and DATE(${key}) <= "${validateDate(item.dateTo)}"
-  )`,
+  equals: (key, item) => dateRangeSql(key, `"${validateDate(item.dateFrom)} 00:00:00"`, `"${validateDate(item.dateFrom)} 00:00:00" + INTERVAL 1 DAY`),
+  notEqual: (key, item) => `${key} is not null and not (${dateRangeSql(key, `"${validateDate(item.dateFrom)} 00:00:00"`, `"${validateDate(item.dateFrom)} 00:00:00" + INTERVAL 1 DAY`)})`,
+  greaterThan: (key, item) => `${key} >= "${validateDate(item.dateFrom)} 00:00:00" + INTERVAL 1 DAY`,
+  greaterThanOrEqual: (key, item) => `${key} >= "${validateDate(item.dateFrom)} 00:00:00"`,
+  lessThan: (key, item) => `${key} < "${validateDate(item.dateFrom)} 00:00:00"`,
+  lessThanOrEqual: (key, item) => `${key} < "${validateDate(item.dateFrom)} 00:00:00" + INTERVAL 1 DAY`,
+  inRange: (key, item) => dateRangeSql(key, `"${validateDate(item.dateFrom)} 00:00:00"`, `"${validateDate(item.dateTo)} 00:00:00" + INTERVAL 1 DAY`),
   blank: key => `${key} is null`,
   notBlank: key => `${key} is not null`,
 };
@@ -176,6 +201,10 @@ const leafFilterSql = (key: string, item: SimpleFilterModel) => {
       return filter(key, item);
     }
     case 'date': {
+      const presetFilter = datePresetFilters[item.type];
+
+      if (presetFilter) return presetFilter(key);
+
       const filter = dateFilters[item.type];
 
       if (!filter) throw new Error(`Unsupported ${item.filterType} filter type: ${item.type}`);
