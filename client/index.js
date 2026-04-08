@@ -26,6 +26,8 @@ const gridOptions = {
     { field: "country", filter: "agTextColumnFilter" },
     { field: "sport" },
     { field: "year", filter: "agNumberColumnFilter", filterParams: { newRowsAction: "keep" } },
+    { field: "bigint_value", filter: "agBigIntColumnFilter" },
+    { field: "created_at", filter: "agDateColumnFilter" },
     { field: "gold" },
     { field: "silver" },
     { field: "bronze" },

@@ -110,13 +110,81 @@ const textFilters = {
   endsWith: (key, item) => `${key} like "%${item.filter}"`,
 };
 
+const validateBigInt = (value: string | null | undefined) => {
+  if (value === null || value === undefined) return value;
+  if (/^-?\d+$/.test(value)) return value;
+  throw new Error(`Invalid bigint filter value: ${value}`);
+};
+
+const bigintFilters = {
+  equals: (key, item) => `${key} = ${validateBigInt(item.filter)}`,
+  notEqual: (key, item) => `${key} != ${validateBigInt(item.filter)}`,
+  greaterThan: (key, item) => `${key} > ${validateBigInt(item.filter)}`,
+  greaterThanOrEqual: (key, item) => `${key} >= ${validateBigInt(item.filter)}`,
+  lessThan: (key, item) => `${key} < ${validateBigInt(item.filter)}`,
+  lessThanOrEqual: (key, item) => `${key} <= ${validateBigInt(item.filter)}`,
+  inRange: (key, item) => `(${key} >= ${validateBigInt(item.filter)} and ${key} <= ${validateBigInt(item.filterTo)})`,
+  blank: key => `${key} is null`,
+  notBlank: key => `${key} is not null`,
+};
+
+const validateDate = (value: string | null | undefined) => {
+  if (value === null || value === undefined) return value;
+
+  const normalizedValue = value.replace('T', ' ');
+
+  if (/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/.test(normalizedValue)) return normalizedValue.slice(0, 10);
+  throw new Error(`Invalid date filter value: ${value}`);
+};
+
+const dateFilters = {
+  equals: (key, item) => `DATE(${key}) = "${validateDate(item.dateFrom)}"`,
+  notEqual: (key, item) => `DATE(${key}) != "${validateDate(item.dateFrom)}"`,
+  greaterThan: (key, item) => `DATE(${key}) > "${validateDate(item.dateFrom)}"`,
+  greaterThanOrEqual: (key, item) => `DATE(${key}) >= "${validateDate(item.dateFrom)}"`,
+  lessThan: (key, item) => `DATE(${key}) < "${validateDate(item.dateFrom)}"`,
+  lessThanOrEqual: (key, item) => `DATE(${key}) <= "${validateDate(item.dateFrom)}"`,
+  inRange: (key, item) => `(
+    DATE(${key}) >= "${validateDate(item.dateFrom)}" and DATE(${key}) <= "${validateDate(item.dateTo)}"
+  )`,
+  blank: key => `${key} is null`,
+  notBlank: key => `${key} is not null`,
+};
+
 const leafFilterSql = (key: string, item: SimpleFilterModel) => {
-  const filters = item.filterType === 'text' ? textFilters : numberFilters; //TODO: handle more than text & numbers
-  const filter = filters[item.type];
+  //TODO: handle more than text & numbers
+  switch (item.filterType) {
+    case 'text': {
+      const filter = textFilters[item.type];
 
-  if (!filter) throw new Error(`Unsupported ${item.filterType} filter type: ${item.type}`);
+      if (!filter) throw new Error(`Unsupported ${item.filterType} filter type: ${item.type}`);
 
-  return filter(key, item);
+      return filter(key, item);
+    }
+    case 'bigint': {
+      const filter = bigintFilters[item.type];
+
+      if (!filter) throw new Error(`Unsupported ${item.filterType} filter type: ${item.type}`);
+
+      return filter(key, item);
+    }
+    case 'number': {
+      const filter = numberFilters[item.type];
+
+      if (!filter) throw new Error(`Unsupported ${item.filterType} filter type: ${item.type}`);
+
+      return filter(key, item);
+    }
+    case 'date': {
+      const filter = dateFilters[item.type];
+
+      if (!filter) throw new Error(`Unsupported ${item.filterType} filter type: ${item.type}`);
+
+      return filter(key, item);
+    }
+    default:
+      throw new Error(`Unsupported filter type: ${item.filterType}`);
+  }
 };
 
 const filterSql = (key: string, item: SupportedFilterModel | null | undefined): string => {
