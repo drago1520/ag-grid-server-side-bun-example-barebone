@@ -8,6 +8,7 @@
   },
   "type": "module",
   "dependencies": {
+    "ag-grid-community": "^35.2.1",
     "mysql2": "^3.20.0"
   }
 }

@@ -2,12 +2,12 @@ const gridOptions = {
   rowModelType: "serverSide",
   columnDefs: [
     { field: "athlete" },
-    { field: "country", rowGroup: true, hide: true },
-    { field: "sport", rowGroup: true, hide: true },
+    { field: "country", filter: "agTextColumnFilter" },
+    { field: "sport" },
     { field: "year", filter: "agNumberColumnFilter", filterParams: { newRowsAction: "keep" } },
-    { field: "gold", aggFunc: "sum" },
-    { field: "silver", aggFunc: "sum" },
-    { field: "bronze", aggFunc: "sum" },
+    { field: "gold" },
+    { field: "silver" },
+    { field: "bronze" },
   ],
   defaultColDef: {
     sortable: true,

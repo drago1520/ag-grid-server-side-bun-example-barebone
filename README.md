@@ -9,4 +9,4 @@ A minimal Bun version of the AG Grid server-side MySQL demo.
 3. Run the app with `bun run dev`
 4. Open `http://localhost:4000`
 
-[`server/olympicWinnersService.js`](/mnt/c/projects/real/copenhagenatomics/web/ag-grid-server-side-nodejs-example/server/olympicWinnersService.js) is intentionally unchanged.
+[`server/service.js`](/mnt/c/projects/real/copenhagenatomics/web/ag-grid-server-side-nodejs-example/server/service.js) is intentionally unchanged.
